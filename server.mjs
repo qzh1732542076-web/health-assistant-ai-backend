@@ -6,7 +6,9 @@ const app = express();
 app.use(express.json({ limit: "64kb" }));
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const client = new OpenAI({
+  apiKey: process.env.SILICONFLOW_API_KEY,
+  baseURL: process.env.SILICONFLOW_BASE_URL || "https://api.siliconflow.cn/v1",
 });
 
 const requestSchema = z.object({
@@ -55,7 +57,7 @@ ${JSON.stringify(payload)}
 `;
 
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5",
+      model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen3-32B",
       input: prompt,
     });
 
