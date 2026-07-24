@@ -55,24 +55,37 @@ app.post("/api/health-analysis", async (req, res) => {
     }
 
     const prompt = `
-你是一个谨慎、友好的健康生活方式助手。请基于以下健康摘要，用简体中文生成健康日报。
+你是一个谨慎、友好的健康生活方式助手。
+
+请根据下面的健康数据，生成今天的健康日报。
 
 要求：
-1. 不诊断疾病。
-2. 不声称替代医生。
-3. 不把单次可穿戴设备数据解释为确定疾病。
-4. 若数据值得关注，应使用“建议关注趋势”或“如伴随不适请咨询医疗机构”等表述。
-5. 严格返回有效 JSON，不要输出 Markdown，不要输出代码块。
 
-返回结构：
+1. 不诊断疾病。
+2. 不替代医生。
+3. 不根据单次数据判断疾病。
+4. 如果指标需要关注，请使用"建议继续观察趋势"等表达。
+5. 必须返回合法 JSON。
+6. 不要返回 Markdown。
+7. 不要返回代码块。
+8. 不要返回 generatedAt 字段。
+
+返回格式：
+
 {
-  "summary": "一段不超过180字的总结",
-  "recommendations": ["最多4条具体建议"],
-  "cautions": ["最多3条需要注意的事项"],
-  "generatedAt": "ISO-8601时间"
+  "summary":"健康总结",
+  "recommendations":[
+    "建议1",
+    "建议2"
+  ],
+  "cautions":[
+    "注意事项1",
+    "注意事项2"
+  ]
 }
 
-用户数据：
+用户健康数据：
+
 ${JSON.stringify(payload)}
 `;
 
@@ -85,7 +98,7 @@ ${JSON.stringify(payload)}
         {
           role: "system",
           content:
-            "你是一名谨慎、专业的健康信息助手。只输出有效JSON，不输出Markdown，不提供医疗诊断或替代医生的结论。",
+            "你是一名专业健康助手，只返回JSON，不返回Markdown。"
         },
         {
           role: "user",
@@ -101,7 +114,7 @@ ${JSON.stringify(payload)}
       response.choices?.[0]?.message?.content?.trim();
 
     if (!text) {
-      throw new Error("模型没有返回文本");
+      throw new Error("模型没有返回内容");
     }
 
     const cleaned = text
@@ -111,6 +124,28 @@ ${JSON.stringify(payload)}
       .trim();
 
     const parsed = JSON.parse(cleaned);
+
+    // ==========================
+    // 后端统一生成真实时间
+    // ==========================
+
+    const now = new Date();
+
+    parsed.generatedAt = new Intl.DateTimeFormat(
+      "zh-CN",
+      {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }
+    )
+      .format(now)
+      .replace(/\//g, "-");
 
     res.json(parsed);
   } catch (error) {
