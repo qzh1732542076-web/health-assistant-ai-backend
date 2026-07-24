@@ -56,12 +56,23 @@ app.post("/api/health-analysis", async (req, res) => {
 ${JSON.stringify(payload)}
 `;
 
-    const response = await client.responses.create({
-      model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen3-32B",
-      input: prompt,
-    });
+   const response = await client.chat.completions.create({
+  model: process.env.SILICONFLOW_MODEL || "deepseek-ai/DeepSeek-V3",
+  messages: [
+    {
+      role: "system",
+      content: "你是一名谨慎、专业的健康信息助手。只输出有效 JSON，不要输出 Markdown，不提供医疗诊断或替代医生的结论。"
+    },
+    {
+      role: "user",
+      content: prompt
+    }
+  ],
+  temperature: 0.3,
+  max_tokens: 1800
+});
 
-    const text = response.output_text?.trim();
+const text = response.choices?.[0]?.message?.content?.trim();
     if (!text) {
       throw new Error("模型没有返回文本");
     }
